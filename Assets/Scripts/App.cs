@@ -13,7 +13,7 @@ namespace Assets.Scripts
 
         App()
         {
-            this.path = @"C:\Users\seibel.erwan\Downloads";
+            this.path = @"";
         }
 
         public static App GetInstance()

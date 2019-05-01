@@ -4,7 +4,7 @@ using UnityEngine;
 
 public class Camera : MonoBehaviour {
 
-    private float speed = 5f;
+    private float speed = 10f;
 
     float camSens = 0.25f; //How sensitive it with mouse
     private Vector3 lastMouse = new Vector3(255, 255, 255); //kind of in the middle of the screen, rather than at the top (play

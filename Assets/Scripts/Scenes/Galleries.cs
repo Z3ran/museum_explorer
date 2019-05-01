@@ -19,6 +19,9 @@ public class Galleries : MonoBehaviour {
 
     private Room currentRoom;
 
+    // Le nombre de piece mise en cache
+    private const int ROOM_CACHE_NB = 10;
+
     // https://answers.unity.com/questions/139808/creating-a-plane-mesh-directly-from-code.html
 
 	// Use this for initialization
@@ -30,11 +33,20 @@ public class Galleries : MonoBehaviour {
         Debug.Log("Directory Path : " + myPath);
 
         DirectoryInfo dir = new DirectoryInfo(myPath);
-        FileInfo[] info = dir.GetFiles("*.png");
 
-        uint loadedImage = 0;
+        List<FileInfo> listOfImages = new List<FileInfo>();
 
-        while (loadedImage < info.Length)
+        //FileInfo[] info = dir.GetFiles("*.png");
+        //FileInfo[] infojpg = dir.GetFiles("*.jpg");
+
+        listOfImages.AddRange( dir.GetFiles("*.png") );
+        listOfImages.AddRange( dir.GetFiles("*.jpg") );
+   
+        // TODO sort images list by name         
+
+        int loadedImage = 0;
+
+        while ( loadedImage < listOfImages.Count )
         {
             GameObject room = this.createNewRoom();
             var roomFrames = room.transform.Find("frames");
@@ -45,9 +57,9 @@ public class Galleries : MonoBehaviour {
 
                 if (image)
                 {
-                    if (loadedImage < info.Length)
+                    if (loadedImage < listOfImages.Count )
                     {
-                        FileStream file = info[loadedImage].OpenRead();
+                        FileStream file = listOfImages[loadedImage].OpenRead();
 
                         byte[] fileData = new byte[file.Length];
                         file.Read(fileData, 0, (int)file.Length);
@@ -55,7 +67,7 @@ public class Galleries : MonoBehaviour {
                         var tex = new Texture2D(2, 2);
                         tex.LoadImage(fileData); //..this will auto-resize the texture dimensions.
 
-                        // Debug.Log("Image found : " + image + " Load Texture : " + info[loadedImage].Name);
+                        //Debug.Log("Image found : " + image + " Load Texture : " + listOfImages[loadedImage].Name);
                         image.GetComponent<Renderer>().material.SetTexture("_MainTex", tex);
 
                         // Debug.Log(string.Format("Texture width {0}, height {1}", tex.width, tex.height));
@@ -63,17 +75,20 @@ public class Galleries : MonoBehaviour {
                         //Get ratio :
                         var ratio = tex.width / tex.height;
 
+                        // TODO Pour les images trop longue en hauteur ou en largeur les limités !!!
                         if (tex.width > tex.height)
                         {
                             image.localScale = new Vector3(image.localScale.x * ((float)tex.width / (float)tex.height), 1, image.localScale.z);
                         }
                         else if (tex.height > tex.width)
                         {
+                            // Comme l'image a son encre au centre on doit remonter un peu l'image si on l'etire dans le sens de la hauteur. (10 egale le nombre d'unité par défaut)
+                            image.localPosition = new Vector3(image.localPosition.x, ((image.localScale.z * ((float)tex.height / (float)tex.width) - (float)image.localScale.z) / 2) * 10, image.localPosition.z);
                             image.localScale = new Vector3(image.localScale.x, 1, image.localScale.z * ((float)tex.height / (float)tex.width));
                         }
 
                         //TODO gérer la position du texte en fonction du ratio de l'image
-                        var plaqueText = frame.Find("Plaque/Text").GetComponent<Text>().text = info[loadedImage].Name;
+                        var plaqueText = frame.Find("Plaque/Text").GetComponent<Text>().text = listOfImages[loadedImage].Name;
 
                         loadedImage++;
                     }
@@ -82,6 +97,8 @@ public class Galleries : MonoBehaviour {
         }
 
         Debug.Log( "All Image has been loaded" );
+
+        // TODO Désactiver les tableaux en trop
 
         // positionne la caméra au centre des pieces : X Longueur, Y : Hauteur, Z : Largeur
         mainCamera.transform.position = new Vector3( (50 * this.roomsList.Count) / 2, 15, -25 );

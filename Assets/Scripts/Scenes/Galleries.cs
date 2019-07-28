@@ -101,7 +101,7 @@ public class Galleries : MonoBehaviour {
         // TODO Désactiver les tableaux en trop
 
         // positionne la caméra au centre des pieces : X Longueur, Y : Hauteur, Z : Largeur
-        mainCamera.transform.position = new Vector3( (50 * this.roomsList.Count) / 2, 15, -25 );
+        mainCamera.transform.position = new Vector3( 0, 4, 0 );
 
         // TODO Ajouter une animation au texte pour le faire disparaitre !
         this.hud.transform.Find("CurrentRoomText").GetComponent<Text>().text = "NEXUS";
@@ -114,7 +114,7 @@ public class Galleries : MonoBehaviour {
 	void Update () {
         this.hud.transform.Find("DebugText").GetComponent<Text>().text = string.Format( "DEBUG - Position : x = {0} y = {1} z = {2}", this.mainCamera.transform.position.x, this.mainCamera.transform.position.y, this.mainCamera.transform.position.z );
 
-        this.player.transform.position = new Vector3( this.mainCamera.transform.position.x, this.mainCamera.transform.position.y, this.mainCamera.transform.position.z + 3 );
+        this.player.transform.position = new Vector3( this.mainCamera.transform.position.x, this.mainCamera.transform.position.y, this.mainCamera.transform.position.z );
     }
 
     private GameObject createNewRoom()

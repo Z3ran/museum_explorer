@@ -13,7 +13,7 @@ namespace Assets.Scripts
 
         App()
         {
-            this.path = @"";
+            this.path = @"E:\wall\momoco haru";
         }
 
         public static App GetInstance()

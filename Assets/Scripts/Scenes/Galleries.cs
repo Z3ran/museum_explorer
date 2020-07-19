@@ -1,4 +1,5 @@
 ﻿using Assets.Scripts;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -42,11 +43,12 @@ public class Galleries : MonoBehaviour {
         listOfImages.AddRange( dir.GetFiles("*.png") );
         listOfImages.AddRange( dir.GetFiles("*.jpg") );
    
-        // TODO sort images list by name         
+        // TODO sort images list by name     
 
         int loadedImage = 0;
+        int nbMaxToLoad = Math.Min(20, listOfImages.Count);
 
-        while ( loadedImage < listOfImages.Count )
+        while ( loadedImage < nbMaxToLoad)
         {
             GameObject room = this.createNewRoom();
             var roomFrames = room.transform.Find("frames");
@@ -100,8 +102,8 @@ public class Galleries : MonoBehaviour {
 
         // TODO Désactiver les tableaux en trop
 
-        // positionne la caméra au centre des pieces : X Longueur, Y : Hauteur, Z : Largeur
-        mainCamera.transform.position = new Vector3( 0, 4, 0 );
+        // positionne le joueur au centre de la piece principale : X Longueur, Y : Hauteur, Z : Largeur
+        player.transform.position = new Vector3( 0, 15, 0 );
 
         // TODO Ajouter une animation au texte pour le faire disparaitre !
         this.hud.transform.Find("CurrentRoomText").GetComponent<Text>().text = "NEXUS";
@@ -113,8 +115,6 @@ public class Galleries : MonoBehaviour {
 	// Update is called once per frame
 	void Update () {
         this.hud.transform.Find("DebugText").GetComponent<Text>().text = string.Format( "DEBUG - Position : x = {0} y = {1} z = {2}", this.mainCamera.transform.position.x, this.mainCamera.transform.position.y, this.mainCamera.transform.position.z );
-
-        this.player.transform.position = new Vector3( this.mainCamera.transform.position.x, this.mainCamera.transform.position.y, this.mainCamera.transform.position.z );
     }
 
     private GameObject createNewRoom()

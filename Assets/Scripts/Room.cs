@@ -2,11 +2,37 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+public enum RoomConnectionEnum 
+{
+    TOP,
+    RIGHT,
+    BOTTOM,
+    LEFT
+}
+
 public class Room : MonoBehaviour {
 
     private Random.State roomRandomState;
 
     private bool isCurrentRoom = false;
+    private int roomIndex = -1;
+
+    /// <summary>
+    /// Connections flag :
+    /// top : 1
+    /// right : 2
+    /// bottom : 4
+    /// left : 8
+    /// </summary>
+    [SerializeField()]
+    private short connectionsFlag;
+
+    private Room[] roomConnections = { null, null, null, null };
+
+    public static RoomConnectionEnum GetReverseConnectionIndex( RoomConnectionEnum index )
+    {
+        return (RoomConnectionEnum)(((int)index + 2) % 4);
+    }
 
 	// Use this for initialization
 	void Start () {
@@ -18,12 +44,76 @@ public class Room : MonoBehaviour {
 		
 	}
 
+    public void Init(int index)
+    {
+        this.roomIndex = index;
+    }
+
+    public int GetIndex()
+    {
+        return this.roomIndex;
+    }
+
+    public void SetRoomConnectionOn( Room room, RoomConnectionEnum connectionEnum )
+    {
+        this.roomConnections[(int)connectionEnum] = room;
+    }
+
+    public Room RemoveRoomConnectionOn(RoomConnectionEnum connectionEnum)
+    {
+        Room room = this.roomConnections[(int)connectionEnum];
+
+        this.roomConnections[(int)connectionEnum] = null;
+
+        return room;
+    }
+
+    /// <summary>
+    /// Recupère la prochaine room connecter a celle là en evitant la room de la connection en paramètre
+    /// </summary>
+    /// <param name="connectionIndex">l'index de la connexion à exclure</param>
+    /// <returns>La prochaine room, l'index de connexion</returns>
+    public (Room, RoomConnectionEnum?) GetNextRoomConnection(RoomConnectionEnum connectionIndex)
+    {
+        for (var i = 0; i <= (int)RoomConnectionEnum.LEFT; i++)
+        {
+            if (i == (int)connectionIndex) continue;
+
+            if (this.roomConnections[i] != null)
+            {
+                return (this.roomConnections[i], (RoomConnectionEnum)i);
+            }
+        }
+
+        return (null, null);
+    }
+
+    /// <summary>
+    /// Retourne la prochaine connection disponible dans la room en excluant l'index donnée en paramêtre
+    /// </summary>
+    /// <param name="fromConnectionIndex">l'index à exclure</param>
+    /// <returns>La connection disponible ou null si aucune de disponible</returns>
+    public RoomConnectionEnum? GetNextConnectionIndex(RoomConnectionEnum? fromConnectionIndex)
+    {
+        for (var i = 0; i <= (int)RoomConnectionEnum.LEFT; i++)
+        {
+            if (fromConnectionIndex.HasValue && i == (int)fromConnectionIndex.Value) continue;
+
+            if ( this.roomConnections[i] == null && ((this.connectionsFlag >> i) & 0x1) == 1 )
+            {
+                return (RoomConnectionEnum)i;
+            }
+        }
+
+        return null;
+    }
+
     public void onLeave( Room newRoom )
     {
         isCurrentRoom = false;
     }
 
-    public void onAreaEnter( Collider other )
+    public void onAreaEnter( Collider other, int connectionIndex )
     {
         if (!this.isCurrentRoom)
         {
@@ -32,7 +122,7 @@ public class Room : MonoBehaviour {
 
             if ( gallerie )
             {
-                gallerie.onRoomEnter(this);
+                gallerie.onRoomEnter(this, connectionIndex);
             }
 
             Debug.Log("Enter Room");

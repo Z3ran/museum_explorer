@@ -4,6 +4,9 @@ using UnityEngine;
 
 public class RoomEnterArea : MonoBehaviour {
 
+    [SerializeField()]
+    private int connectionIndex;
+
 	// Use this for initialization
 	void Start () {
 
@@ -20,7 +23,7 @@ public class RoomEnterArea : MonoBehaviour {
 
         if ( room )
         {
-            room.onAreaEnter(other);
+            room.onAreaEnter(other, this.connectionIndex);
         }
     }
 }

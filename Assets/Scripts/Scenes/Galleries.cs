@@ -89,59 +89,13 @@ public class Galleries : MonoBehaviour {
             }
 
             currentRoom = room.GetComponent<Room>();
+            currentRoom.LoadImages(listOfImages);
 
-            var roomFrames = room.transform.Find("frames");
-
-            foreach (Transform frame in roomFrames.transform)
-            {
-                Transform image = frame.Find("Image");
-
-                if (image)
-                {
-                    if (loadedImage < listOfImages.Count )
-                    {
-                        FileStream file = listOfImages[loadedImage].OpenRead();
-
-                        byte[] fileData = new byte[file.Length];
-                        file.Read(fileData, 0, (int)file.Length);
-
-                        var tex = new Texture2D(2, 2);
-                        tex.LoadImage(fileData); //..this will auto-resize the texture dimensions.
-
-                        //Debug.Log("Image found : " + image + " Load Texture : " + listOfImages[loadedImage].Name);
-                        image.GetComponent<Renderer>().material.SetTexture("_MainTex", tex);
-
-                        // Debug.Log(string.Format("Texture width {0}, height {1}", tex.width, tex.height));
-
-                        //Get ratio :
-                        var ratio = tex.width / tex.height;
-
-                        // TODO Pour les images trop longue en hauteur ou en largeur les limités !!!
-                        if (tex.width > tex.height)
-                        {
-                            image.localScale = new Vector3(image.localScale.x * ((float)tex.width / (float)tex.height), 1, image.localScale.z);
-                        }
-                        else if (tex.height > tex.width)
-                        {
-                            // Comme l'image a son encre au centre on doit remonter un peu l'image si on l'etire dans le sens de la hauteur. (10 egale le nombre d'unité par défaut)
-                            image.localPosition = new Vector3(image.localPosition.x, ((image.localScale.z * ((float)tex.height / (float)tex.width) - (float)image.localScale.z) / 2) * 10, image.localPosition.z);
-                            image.localScale = new Vector3(image.localScale.x, 1, image.localScale.z * ((float)tex.height / (float)tex.width));
-                        }
-
-                        //TODO gérer la position du texte en fonction du ratio de l'image
-                        var plaqueText = frame.Find("Plaque/Text").GetComponent<Text>().text = listOfImages[loadedImage].Name;
-
-                        loadedImage++;
-                    }
-                }
-            }
-
+            loadedImage += currentRoom.GetNbFrames();
             previousRoom = currentRoom;
         }
 
         Debug.Log( "All Image has been loaded" );
-
-        // TODO Désactiver les tableaux en trop
 
         // TODO Ajouter une animation au texte pour le faire disparaitre !
         this.UpdateGUIPositionText( "NEXUS" );
@@ -241,12 +195,18 @@ public class Galleries : MonoBehaviour {
             
             if (lastRoomFound != null)
             {
+                var nbFrames = lastRoomFound.GetNbFrames();
                 var newConnectionIndex = lastRoomFound.GetNextConnectionIndex(Room.GetReverseConnectionIndex(lastRoomConnectionIndex.Value));
 
-                var nbFrames = lastRoomFound.gameObject.transform.Find("frames").childCount;
-                var newRoomGameObject = this.createNewRoom(lastRoomFound.imageStartIndex + nbFrames * ((lastRoomFound.imageStartIndex > room.imageStartIndex) ? 1:-1), lastRoomFound, (int)newConnectionIndex.Value);
+                int newRoomImageIndex = lastRoomFound.imageStartIndex + nbFrames * ((lastRoomFound.imageStartIndex > room.imageStartIndex) ? 1 : -1);
+
+                // TODO gérer le nombre de chambre
+                if (newRoomImageIndex < 0) return;
+                
+                var newRoomGameObject = this.createNewRoom(newRoomImageIndex, lastRoomFound, (int)newConnectionIndex.Value);
                 var newRoom = newRoomGameObject.GetComponent<Room>();
                 // TODO mettre à jour les tableaux !
+                newRoom.LoadImages(this.listOfImages);
                 Debug.LogFormat("CREATE ROOM {0}", newRoomGameObject.name);
             }
 

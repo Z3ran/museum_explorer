@@ -1,6 +1,8 @@
 ﻿using System.Collections;
 using System.Collections.Generic;
+using System.Threading.Tasks;
 using UnityEngine;
+using UnityEngine.UI;
 
 public enum RoomConnectionEnum 
 {
@@ -52,9 +54,22 @@ public class Room : MonoBehaviour {
 	void Start () {
 		
 	}
-	
-	// Update is called once per frame
-	void Update () {
+
+    private void OnDestroy()
+    {
+        StopAllCoroutines();
+
+        Caching.ClearCache();
+
+#if UNITY_EDITOR
+        UnityEditor.EditorUtility.UnloadUnusedAssetsImmediate();
+#else
+        Resources.UnloadUnusedAssets();
+#endif
+    }
+
+    // Update is called once per frame
+    void Update () {
 		
 	}
 
@@ -138,6 +153,15 @@ public class Room : MonoBehaviour {
         return null;
     }
 
+    /// <summary>
+    /// Retourne le nombre de cadre dans la room
+    /// </summary>
+    /// <returns></returns>
+    public int GetNbFrames()
+    {
+        return this.transform.Find("frames").childCount;
+    }
+
     public void onLeave( Room newRoom )
     {
         isCurrentRoom = false;
@@ -156,6 +180,121 @@ public class Room : MonoBehaviour {
             }
 
             Debug.Log("Enter Room");
+        }
+    }
+
+    public void LoadImages(List<System.IO.FileInfo> images)
+    {
+        var roomFrames = this.transform.Find("frames");
+        var nbLoaded = 0;
+
+        foreach (Transform frame in roomFrames.transform)
+        {
+            if (this._imageStartIndex + nbLoaded >= images.Count)
+            {   // Désactive les tableaux
+                frame.gameObject.SetActive(false);
+                continue;
+            }
+
+            System.IO.FileInfo imageFile = images[this._imageStartIndex + nbLoaded];
+            Transform image = frame.Find("Image");
+
+            if (image)
+            {
+                StartCoroutine(LoadFrameImageRoutine(imageFile, image.gameObject));
+
+                //TODO gérer la position du texte en fonction du ratio de l'image
+                var plaqueText = frame.Find("Plaque/Text").GetComponent<Text>().text = imageFile.Name;
+            }
+
+            nbLoaded++;
+        }
+    }
+
+    [System.ObsoleteAttribute("Prend trop de temps utiliser plutot LoadFrameImageRoutine")]
+    private async Task LoadFrameImage(System.IO.FileInfo imageFile, GameObject frameImage)
+    {
+        Debug.LogFormat("#1 LoadFrameImage {2} - t: {0}, dt: {1}", Time.unscaledTime, Time.deltaTime, imageFile.Name);
+        System.IO.FileStream file = imageFile.OpenRead();
+
+        byte[] fileData = new byte[file.Length];
+
+        Debug.LogFormat("#2 LoadFrameImage {2} - t: {0}, dt: {1}", Time.unscaledTime, Time.deltaTime, imageFile.Name);
+        await file.ReadAsync(fileData, 0, (int)file.Length);
+
+        Debug.LogFormat("#3 LoadFrameImage {2} - t: {0}, dt: {1}", Time.unscaledTime, Time.deltaTime, imageFile.Name);
+        
+        // Load Image prend trop de temps et bloque le jeu.
+        var tex = new Texture2D(2, 2);
+        tex.LoadImage(fileData); //..this will auto-resize the texture dimensions.
+
+        Debug.LogFormat("#4 LoadFrameImage {2} - t: {0}, dt: {1}", Time.unscaledTime, Time.deltaTime, imageFile.Name);
+
+        //Debug.Log("Image found : " + image + " Load Texture : " + listOfImages[loadedImage].Name);
+        frameImage.GetComponent<Renderer>().material.SetTexture("_MainTex", tex);
+
+        // Debug.Log(string.Format("Texture width {0}, height {1}", tex.width, tex.height));
+        Debug.LogFormat("#5 LoadFrameImage {2} - t: {0}, dt: {1}", Time.unscaledTime, Time.deltaTime, imageFile.Name);
+        //Get ratio :
+        var ratio = tex.width / tex.height;
+
+        // TODO Pour les images trop longue en hauteur ou en largeur les limités !!!
+        if (tex.width > tex.height)
+        {
+            frameImage.transform.localScale = new Vector3(frameImage.transform.localScale.x * ((float)tex.width / (float)tex.height), 1, frameImage.transform.localScale.z);
+        }
+        else if (tex.height > tex.width)
+        {
+            // Comme l'image a son ancre au centre on doit remonter un peu l'image si on l'etire dans le sens de la hauteur. (10 egale le nombre d'unité par défaut)
+            frameImage.transform.localPosition = new Vector3(
+                frameImage.transform.localPosition.x, 
+                ((frameImage.transform.localScale.z * ((float)tex.height / (float)tex.width) - (float)frameImage.transform.localScale.z) / 2) * 10, 
+                frameImage.transform.localPosition.z);
+
+            frameImage.transform.localScale = new Vector3(frameImage.transform.localScale.x, 1, frameImage.transform.localScale.z * ((float)tex.height / (float)tex.width));
+        }
+    }
+
+    private IEnumerator LoadFrameImageRoutine(System.IO.FileInfo imageFile, GameObject frameImage)
+    {
+        using (UnityEngine.Networking.UnityWebRequest uwr = UnityEngine.Networking.UnityWebRequestTexture.GetTexture(@"file://" + imageFile.FullName))
+        {
+            yield return uwr.SendWebRequest();
+
+            if (string.IsNullOrEmpty(uwr.error))
+            {
+                // Get downloaded asset bundle
+                var tex = UnityEngine.Networking.DownloadHandlerTexture.GetContent(uwr);
+
+                //Debug.Log("Image found : " + image + " Load Texture : " + listOfImages[loadedImage].Name);
+                frameImage.GetComponent<Renderer>().material.SetTexture("_MainTex", tex);
+
+                // Debug.Log(string.Format("Texture width {0}, height {1}", tex.width, tex.height));
+
+                //Get ratio :
+                var ratio = tex.width / tex.height;
+
+                // TODO Pour les images trop longue en hauteur ou en largeur les limités !!!
+                if (tex.width > tex.height)
+                {
+                    frameImage.transform.localScale = new Vector3(frameImage.transform.localScale.x * ((float)tex.width / (float)tex.height), 1, frameImage.transform.localScale.z);
+                }
+                else if (tex.height > tex.width)
+                {
+                    // Comme l'image a son ancre au centre on doit remonter un peu l'image si on l'etire dans le sens de la hauteur. (10 egale le nombre d'unité par défaut)
+                    frameImage.transform.localPosition = new Vector3(
+                        frameImage.transform.localPosition.x,
+                        ((frameImage.transform.localScale.z * ((float)tex.height / (float)tex.width) - (float)frameImage.transform.localScale.z) / 2) * 10,
+                        frameImage.transform.localPosition.z);
+
+                    frameImage.transform.localScale = new Vector3(frameImage.transform.localScale.x, 1, frameImage.transform.localScale.z * ((float)tex.height / (float)tex.width));
+                }
+            }
+            else
+            {
+                Debug.Log(uwr.error);
+            }
+
         }
     }
 }

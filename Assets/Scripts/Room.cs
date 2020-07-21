@@ -18,6 +18,20 @@ public class Room : MonoBehaviour {
     private int roomIndex = -1;
 
     /// <summary>
+    /// L'index de la 1er image dans le répertoire courant qu'on affiche dans la room
+    /// </summary>
+    private int _imageStartIndex;
+
+    public int imageStartIndex
+    {
+        get { return _imageStartIndex; }
+        set { _imageStartIndex = value; }
+    }
+
+    [SerializeField()]
+    private List<GameObject> connectionsWall;
+
+    /// <summary>
     /// Connections flag :
     /// top : 1
     /// right : 2
@@ -44,9 +58,10 @@ public class Room : MonoBehaviour {
 		
 	}
 
-    public void Init(int index)
+    public void Init(int index, int imageIndex)
     {
         this.roomIndex = index;
+        this._imageStartIndex = imageIndex;
     }
 
     public int GetIndex()
@@ -57,6 +72,11 @@ public class Room : MonoBehaviour {
     public void SetRoomConnectionOn( Room room, RoomConnectionEnum connectionEnum )
     {
         this.roomConnections[(int)connectionEnum] = room;
+
+        if (this.connectionsWall[(int)connectionEnum] != null)
+        {
+            this.connectionsWall[(int)connectionEnum].SetActive(false);
+        }
     }
 
     public Room RemoveRoomConnectionOn(RoomConnectionEnum connectionEnum)
@@ -65,7 +85,17 @@ public class Room : MonoBehaviour {
 
         this.roomConnections[(int)connectionEnum] = null;
 
+        if (this.connectionsWall[(int)connectionEnum] != null)
+        {
+            this.connectionsWall[(int)connectionEnum].SetActive(true);
+        }
+
         return room;
+    }
+
+    public Room GetRoomOnConnection(RoomConnectionEnum connectionEnum)
+    {
+        return this.roomConnections[(int)connectionEnum];
     }
 
     /// <summary>

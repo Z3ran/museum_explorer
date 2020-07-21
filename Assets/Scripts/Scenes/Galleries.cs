@@ -24,6 +24,10 @@ public class Galleries : MonoBehaviour {
     // Le nombre de piece mise en cache
     private const int ROOM_CACHE_NB = 5;
 
+    /// <summary>
+    /// Pour l'instant garde en mémoire la liste des images dans le répertoire à parcourir
+    /// </summary>
+    List<FileInfo> listOfImages;
 
     private int SortFileByCreationDate(FileInfo file1, FileInfo file2)
     {
@@ -49,7 +53,7 @@ public class Galleries : MonoBehaviour {
 
         DirectoryInfo dir = new DirectoryInfo(myPath);
 
-        List<FileInfo> listOfImages = new List<FileInfo>();
+        listOfImages = new List<FileInfo>();
 
         listOfImages.AddRange( dir.GetFiles("*.png") );
         listOfImages.AddRange( dir.GetFiles("*.jpg") );
@@ -77,11 +81,11 @@ public class Galleries : MonoBehaviour {
                 }
 
                 previousConnection = previousRoom.GetNextConnectionIndex(reverseConnection);
-                room = this.createNewRoom(previousRoom, (int)previousConnection.Value);
+                room = this.createNewRoom(loadedImage, previousRoom, (int)previousConnection.Value);
             }
             else
             {
-                room = this.createNewRoom();
+                room = this.createNewRoom(loadedImage);
             }
 
             currentRoom = room.GetComponent<Room>();
@@ -157,7 +161,7 @@ public class Galleries : MonoBehaviour {
         this.hud.transform.Find("DebugText").GetComponent<Text>().text = string.Format( "DEBUG - Position : x = {0} y = {1} z = {2}", this.mainCamera.transform.position.x, this.mainCamera.transform.position.y, this.mainCamera.transform.position.z );
     }
 
-    private GameObject createNewRoom(Room fromRoom = null, int? connectionIndex = null)
+    private GameObject createNewRoom(int imageIndex, Room fromRoom = null, int? connectionIndex = null)
     {
         Vector3 pos;
 
@@ -186,7 +190,7 @@ public class Galleries : MonoBehaviour {
 
         this.roomsList.Add( Instantiate( this.roomPrefab, pos, Quaternion.identity, this.transform) );
         var room = this.roomsList[this.roomsList.Count - 1];
-        room.GetComponent<Room>().Init(this.roomsList.Count - 1);
+        room.GetComponent<Room>().Init(this.roomsList.Count - 1, imageIndex);
 
         if (fromRoom && connectionIndex.HasValue)
         {
@@ -239,7 +243,8 @@ public class Galleries : MonoBehaviour {
             {
                 var newConnectionIndex = lastRoomFound.GetNextConnectionIndex(Room.GetReverseConnectionIndex(lastRoomConnectionIndex.Value));
 
-                var newRoomGameObject = this.createNewRoom(lastRoomFound, (int)newConnectionIndex.Value);
+                var nbFrames = lastRoomFound.gameObject.transform.Find("frames").childCount;
+                var newRoomGameObject = this.createNewRoom(lastRoomFound.imageStartIndex + nbFrames * ((lastRoomFound.imageStartIndex > room.imageStartIndex) ? 1:-1), lastRoomFound, (int)newConnectionIndex.Value);
                 var newRoom = newRoomGameObject.GetComponent<Room>();
                 // TODO mettre à jour les tableaux !
                 Debug.LogFormat("CREATE ROOM {0}", newRoomGameObject.name);
@@ -269,6 +274,9 @@ public class Galleries : MonoBehaviour {
 
             if (lastRoomFound != null)
             {
+                var previousRoom = lastRoomFound.GetRoomOnConnection(Room.GetReverseConnectionIndex(lastRoomConnectionIndex.Value));
+                previousRoom.RemoveRoomConnectionOn(lastRoomConnectionIndex.Value);
+
                 this.roomsList.Remove(lastRoomFound.gameObject);
 
                 Debug.LogFormat("DELETE ROOM {0}", lastRoomFound.name);

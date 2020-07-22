@@ -24,6 +24,8 @@ public class Galleries : MonoBehaviour {
     // Le nombre de piece mise en cache
     private const int ROOM_CACHE_NB = 5;
 
+    private int nbRoomForChange;
+
     /// <summary>
     /// Pour l'instant garde en mémoire la liste des images dans le répertoire à parcourir
     /// </summary>
@@ -103,6 +105,8 @@ public class Galleries : MonoBehaviour {
         // Choisi la piece du millieu
         int currentRoomIndex = (int)Math.Floor(this.roomsList.Count / 2.0f);
 
+        this.nbRoomForChange = (int)Math.Floor(this.roomsList.Count / 2.0f);
+
         this.currentRoom = this.roomsList[currentRoomIndex].GetComponent<Room>();
         this.currentRoom.onAreaEnter(null, -1);
 
@@ -177,6 +181,7 @@ public class Galleries : MonoBehaviour {
             RoomConnectionEnum? lastRoomConnectionIndex = null;
             RoomConnectionEnum? currentRoomConnectionIndex = (RoomConnectionEnum)connectionIndex;
 
+            int nbThrough = 0;
             int safeLoop = 0;
 
             do
@@ -189,10 +194,14 @@ public class Galleries : MonoBehaviour {
                     lastRoomFound = currentRoom;
                 }
 
+                nbThrough++;
                 safeLoop++;
             }
             while (currentRoom != null && safeLoop < 100);
-            
+
+            // Crée et supprime uniquement de nouvelle chambre si on a 2 chambre devant nous
+            if (nbThrough != this.nbRoomForChange) return;
+
             if (lastRoomFound != null)
             {
                 var nbFrames = lastRoomFound.GetNbFrames();

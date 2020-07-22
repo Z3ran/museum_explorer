@@ -185,6 +185,11 @@ public class Room : MonoBehaviour {
 
     public void LoadImages(List<System.IO.FileInfo> images)
     {
+        StartCoroutine(LoadImagesCoroutines(images));
+    }
+
+    public IEnumerator LoadImagesCoroutines(List<System.IO.FileInfo> images)
+    { 
         var roomFrames = this.transform.Find("frames");
         var nbLoaded = 0;
 
@@ -201,13 +206,14 @@ public class Room : MonoBehaviour {
 
             if (image)
             {
-                StartCoroutine(LoadFrameImageRoutine(imageFile, image.gameObject));
+                yield return LoadFrameImageRoutine(imageFile, image.gameObject);
 
                 //TODO gérer la position du texte en fonction du ratio de l'image
                 var plaqueText = frame.Find("Plaque/Text").GetComponent<Text>().text = imageFile.Name;
             }
 
             nbLoaded++;
+            yield return new WaitForSeconds(0.2f);
         }
     }
 
